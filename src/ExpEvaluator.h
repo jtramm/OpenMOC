@@ -40,8 +40,6 @@ private:
   /** The exponential linear interpolation table */
   FP_PRECISION* _exp_table;
 
-  /** The PolarQuad object of interest */
-  PolarQuad* _polar_quad;
 
   /** Twice the number of polar angles */
   int _two_times_num_polar;
@@ -72,6 +70,8 @@ public:
 
   void initialize();
   FP_PRECISION computeExponential(FP_PRECISION tau, int polar);
+  /** The PolarQuad object of interest */
+  PolarQuad* _polar_quad;
 };
 
 #endif /* EXPEVALUATOR_H_ */

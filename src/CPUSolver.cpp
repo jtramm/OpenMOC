@@ -690,15 +690,15 @@ void CPUSolver::transportSweep() {
     max_track = (i + 1) * (_tot_num_tracks / 2);
 
     /* Loop over each thread within this azimuthal angle halfspace */
-    #pragma omp parallel for private(curr_track, azim_index, num_segments, \
-      curr_segment, segments, track_flux, tid) schedule(guided)
-    for (int track_id=min_track; track_id < max_track; track_id++) {
-
-      tid = omp_get_thread_num();
-
+    #pragma omp parallel private(curr_track, azim_index, num_segments, \
+      curr_segment, segments, track_flux, tid)
+	{
       /* Use local array accumulator to prevent false sharing*/
       FP_PRECISION* thread_fsr_flux;
       thread_fsr_flux = new FP_PRECISION[_num_groups];
+
+	#pragma omp for schedule (dynamic, 10)
+    for (int track_id=min_track; track_id < max_track; track_id++) {
 
       /* Initialize local pointers to important data structures */
       curr_track = _tracks[track_id];
@@ -725,11 +725,12 @@ void CPUSolver::transportSweep() {
         tallyScalarFlux(curr_segment, azim_index, track_flux, thread_fsr_flux);
         tallySurfaceCurrent(curr_segment, azim_index, track_flux, false);
       }
-      delete [] thread_fsr_flux;
 
       /* Transfer boundary angular flux to outgoing Track */
       transferBoundaryFlux(track_id, azim_index, false, track_flux);
     }
+      delete [] thread_fsr_flux;
+	}
   }
 
   return;
@@ -754,27 +755,34 @@ void CPUSolver::tallyScalarFlux(segment* curr_segment, int azim_index,
   int fsr_id = curr_segment->_region_id;
   FP_PRECISION length = curr_segment->_length;
   FP_PRECISION* sigma_t = curr_segment->_material->getSigmaT();
-  FP_PRECISION delta_psi, exponential;
+  FP_PRECISION delta_psi, exponential, tau;
+  FP_PRECISION sin_thetas[3];
+  FP_PRECISION weights[3];
+  for (int p=0; p < _num_polar; p++) {
+    sin_thetas[p] = _exp_evaluator->_polar_quad->getSinTheta(p);
+	weights[p] = _polar_weights(azim_index,p);
+  }
 
-  /* Set the FSR scalar flux buffer to zero */
-  memset(fsr_flux, 0.0, _num_groups * sizeof(FP_PRECISION));
-
-  /* Compute change in angular flux along segment in this FSR */
+  // Compute change in angular flux along segment in this FSR 
   for (int e=0; e < _num_groups; e++) {
+    // Set the FSR scalar flux buffer to zero 
+	fsr_flux[e] = 0;
+	// Calculate tau once for all polar angles 
+	tau = -sigma_t[e] * length;
+	FP_PRECISION red_src = _reduced_sources(fsr_id,e);
     for (int p=0; p < _num_polar; p++) {
-      exponential = _exp_evaluator->computeExponential(sigma_t[e] * length, p);
-      delta_psi = (track_flux(p,e)-_reduced_sources(fsr_id,e)) * exponential;
-      fsr_flux[e] += delta_psi * _polar_weights(azim_index,p);
-      track_flux(p,e) -= delta_psi;
+	  int idx = p*_num_groups + e;
+      exponential = 1.0f - expf(tau / sin_thetas[p]);
+      delta_psi = (track_flux[idx]-red_src) * exponential;
+      fsr_flux[e] += delta_psi * weights[p];
+      track_flux[idx] -= delta_psi;
     }
   }
 
   /* Atomically increment the FSR scalar flux from the temporary array */
   omp_set_lock(&_FSR_locks[fsr_id]);
-  {
     for (int e=0; e < _num_groups; e++)
       _scalar_flux(fsr_id,e) += fsr_flux[e];
-  }
   omp_unset_lock(&_FSR_locks[fsr_id]);
 }
 

@@ -12,9 +12,9 @@ int main() {
   int num_threads = 1;
   #endif
   double track_spacing = 0.1;
-  int num_azim = 4;
+  int num_azim = 144;
   double tolerance = 1e-5;
-  int max_iters = 1000;
+  int max_iters = 30;
 
   /* Set logging information */
   set_log_level("NORMAL");
@@ -489,6 +489,7 @@ int main() {
 
   /* Run simulation */
   CPUSolver solver(&track_generator);
+  //solver.useExponentialIntrinsic();
   solver.setNumThreads(num_threads);
   solver.setConvergenceThreshold(tolerance);
   solver.computeEigenvalue(max_iters);

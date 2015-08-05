@@ -44,7 +44,8 @@ c5g7/c5g7-cmfd.cpp
 # Sets Flags
 #===============================================================================
 
-CFLAGS = -std=gnu++0x
+#CFLAGS = -std=gnu++0x
+CFLAGS = -std=c++11
 
 # Regular gcc Compiler
 ifeq ($(COMPILER),gnu)
@@ -108,7 +109,7 @@ CFLAGS += -DVEC_ALIGNMENT=16
 # Optimization Flags
 ifeq ($(OPTIMIZE),yes)
 ifeq ($(COMPILER),gnu)
-  CFLAGS += -O3 -ffast-math -fpic
+  CFLAGS += -Ofast -ffast-math -fpic -flto -faggressive-loop-optimizations
 endif
 ifeq ($(COMPILER),intel)
   CFLAGS += -O3 -xhost -fast -ansi-alias -no-prec-div -ipo
