@@ -758,6 +758,7 @@ void CPUSolver::tallyScalarFlux(segment* curr_segment, int azim_index,
   FP_PRECISION delta_psi, exponential, tau;
   FP_PRECISION sin_thetas[3];
   FP_PRECISION weights[3];
+  FP_PRECISION expos[3];
   for (int p=0; p < _num_polar; p++) {
     sin_thetas[p] = _exp_evaluator->_polar_quad->getSinTheta(p);
 	weights[p] = _polar_weights(azim_index,p);
@@ -770,10 +771,14 @@ void CPUSolver::tallyScalarFlux(segment* curr_segment, int azim_index,
 	// Calculate tau once for all polar angles 
 	tau = -sigma_t[e] * length;
 	FP_PRECISION red_src = _reduced_sources(fsr_id,e);
+	#pragma omp simd
+    for (int p=0; p < _num_polar; p++) {
+		expos[p] =  1.0f - expf(tau / sin_thetas[p]);
+	}
+	#pragma omp simd
     for (int p=0; p < _num_polar; p++) {
 	  int idx = p*_num_groups + e;
-      exponential = 1.0f - expf(tau / sin_thetas[p]);
-      delta_psi = (track_flux[idx]-red_src) * exponential;
+      delta_psi = (track_flux[idx]-red_src) * expos[p];
       fsr_flux[e] += delta_psi * weights[p];
       track_flux[idx] -= delta_psi;
     }
@@ -781,6 +786,7 @@ void CPUSolver::tallyScalarFlux(segment* curr_segment, int azim_index,
 
   /* Atomically increment the FSR scalar flux from the temporary array */
   omp_set_lock(&_FSR_locks[fsr_id]);
+    #pragma omp simd
     for (int e=0; e < _num_groups; e++)
       _scalar_flux(fsr_id,e) += fsr_flux[e];
   omp_unset_lock(&_FSR_locks[fsr_id]);
