@@ -109,7 +109,7 @@ CFLAGS += -DVEC_ALIGNMENT=16
 # Optimization Flags
 ifeq ($(OPTIMIZE),yes)
 ifeq ($(COMPILER),gnu)
-  CFLAGS += -Ofast -ffast-math -fpic -flto -faggressive-loop-optimizations
+  CFLAGS += -Ofast -ffast-math -flto -march=native -mtune=native -msse2
 endif
 ifeq ($(COMPILER),intel)
   CFLAGS += -O3 -xhost -fast -ansi-alias -no-prec-div -ipo
