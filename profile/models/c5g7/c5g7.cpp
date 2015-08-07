@@ -3,11 +3,11 @@
 #include <array>
 #include <iostream>
 
-int main() {
+int main(int argc, char * argv[]) {
 
   /* Define simulation parameters */
   #ifdef OPENMP
-  int num_threads = omp_get_num_procs();
+  int num_threads = atoi(argv[1]);
   #else
   int num_threads = 1;
   #endif
