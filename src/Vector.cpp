@@ -91,8 +91,9 @@ void Vector::incrementValues(int cell, int ngroups, int * cmfd_groups,
    * temporary array using mutual exclusion locks */
   omp_set_lock(&_cell_locks[cell]);
 
+  int idx = cell * _num_groups;
   for (int e=0; e < ngroups; e++) {
-    _array[cell*_num_groups + cmfd_groups[e]] += vals[e];
+    _array[idx + cmfd_groups[e]] += vals[e];
   }
 
   /* Release Vector cell mutual exclusion lock */
