@@ -75,6 +75,30 @@ void Vector::incrementValue(int cell, int group, FP_PRECISION val) {
   omp_unset_lock(&_cell_locks[cell]);
 }
 
+/**
+ * @brief Increment a series of values in the vector.
+ * @detail This method takes a cell, a series of groups and their accompanying
+ *         floating point values. The cell and groups are used to compute the
+ *         row and column in the vector.
+ * @param cell The cell location.
+ * @param cmfd_groups The CMFD group indices corresponding to each MOC group.
+ * @param vals The values used to increment the row locations.
+ */
+void Vector::incrementValues(int cell, int ngroups, int * cmfd_groups,
+                             FP_PRECISION* vals) {
+
+  /* Atomically increment the Vector values from the
+   * temporary array using mutual exclusion locks */
+  omp_set_lock(&_cell_locks[cell]);
+
+  for (int e=0; e < ngroups; e++) {
+    _array[cell*_num_groups + cmfd_groups[e]] += vals[e];
+  }
+
+  /* Release Vector cell mutual exclusion lock */
+  omp_unset_lock(&_cell_locks[cell]);
+}
+
 
 void Vector::setAll(FP_PRECISION val) {
   std::fill_n(_array, _num_rows, val);

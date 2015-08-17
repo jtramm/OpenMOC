@@ -1912,7 +1912,8 @@ void Cmfd::zeroCurrents() {
 void Cmfd::tallyCurrent(segment* curr_segment, FP_PRECISION* track_flux,
                         FP_PRECISION* polar_weights, bool fwd) {
 
-  FP_PRECISION current;
+  FP_PRECISION currents[_num_moc_groups];
+  int cmfd_groups[_num_moc_groups];
   int surf_id, corner_id, cell_id;
 
   if (fwd) {
@@ -1920,37 +1921,41 @@ void Cmfd::tallyCurrent(segment* curr_segment, FP_PRECISION* track_flux,
 
       surf_id = curr_segment->_cmfd_surface_fwd % NUM_SURFACES;
       cell_id = curr_segment->_cmfd_surface_fwd / NUM_SURFACES;
+      int cmfd_idx = surf_id * _num_cmfd_groups;
 
       for (int e=0; e < _num_moc_groups; e++) {
-        current = 0.;
 
-        int g = getCmfdGroup(e);
+        currents[e] = 0.;
+        cmfd_groups[e] = cmfd_idx + getCmfdGroup(e);
 
         for (int p=0; p < _num_polar; p++)
-          current += track_flux(p, e) * polar_weights[p];
+          currents[e] += track_flux(p, e) * polar_weights[p];
 
-        /* Increment current (polar and azimuthal weighted flux, group) */
-        _surface_currents->incrementValue
-          (cell_id, surf_id*_num_cmfd_groups + g, current / 2.);
+		currents[e] /= 2.;
       }
+      /* Increment current (polar and azimuthal weighted flux, group) */
+	  _surface_currents->incrementValues(cell_id, _num_moc_groups,
+                                         cmfd_groups, currents);
     }
     else if (curr_segment->_cmfd_corner_fwd != -1) {
 
       corner_id = curr_segment->_cmfd_corner_fwd % NUM_CORNERS;
       cell_id = curr_segment->_cmfd_corner_fwd / NUM_CORNERS;
+      
+	  int cmfd_idx = corner_id * _num_cmfd_groups;
 
       for (int e=0; e < _num_moc_groups; e++) {
-        current = 0.;
-
-        int g = getCmfdGroup(e);
+        currents[e] = 0.;
+        cmfd_groups[e] = cmfd_idx + getCmfdGroup(e);
 
         for (int p=0; p < _num_polar; p++)
-          current += track_flux(p, e) * polar_weights[p];
-
-        /* Increment current (polar and azimuthal weighted flux, group) */
-        _corner_currents->incrementValue
-          (cell_id, corner_id*_num_cmfd_groups + g, current / 2.);
+          currents[e] += track_flux(p, e) * polar_weights[p];
+		
+		currents[e] /= 2.;
       }
+      /* Increment current (polar and azimuthal weighted flux, group) */
+	  _corner_currents->incrementValues(cell_id, _num_moc_groups,
+                                         cmfd_groups, currents);
     }
   }
   else {
@@ -1958,37 +1963,43 @@ void Cmfd::tallyCurrent(segment* curr_segment, FP_PRECISION* track_flux,
 
       surf_id = curr_segment->_cmfd_surface_bwd % NUM_SURFACES;
       cell_id = curr_segment->_cmfd_surface_bwd / NUM_SURFACES;
+	  
+	  int cmfd_idx = surf_id * _num_cmfd_groups;
 
       for (int e=0; e < _num_moc_groups; e++) {
-        current = 0.;
+        currents[e] = 0.;
 
-        int g = getCmfdGroup(e);
+        cmfd_groups[e] = cmfd_idx + getCmfdGroup(e);
 
         for (int p=0; p < _num_polar; p++)
-          current += track_flux(p, e) * polar_weights[p];
+          currents[e] += track_flux(p, e) * polar_weights[p];
 
-        /* Increment current (polar and azimuthal weighted flux, group) */
-        _surface_currents->incrementValue
-          (cell_id, surf_id*_num_cmfd_groups + g, current / 2.);
+		currents[e] /= 2.;
       }
+      /* Increment current (polar and azimuthal weighted flux, group) */
+	  _surface_currents->incrementValues(cell_id, _num_moc_groups,
+                                         cmfd_groups, currents);
     }
     else if (curr_segment->_cmfd_corner_bwd != -1) {
 
       corner_id = curr_segment->_cmfd_corner_bwd % NUM_CORNERS;
       cell_id = curr_segment->_cmfd_corner_bwd / NUM_CORNERS;
+	  
+	  int cmfd_idx = corner_id * _num_cmfd_groups;
 
       for (int e=0; e < _num_moc_groups; e++) {
-        current = 0.;
-
-        int g = getCmfdGroup(e);
+        currents[e] = 0.;
+        
+		cmfd_groups[e] = cmfd_idx + getCmfdGroup(e);
 
         for (int p=0; p < _num_polar; p++)
-          current += track_flux(p, e) * polar_weights[p];
+          currents[e] += track_flux(p, e) * polar_weights[p];
 
-        /* Increment current (polar and azimuthal weighted flux, group) */
-        _corner_currents->incrementValue
-          (cell_id, corner_id*_num_cmfd_groups + g, current / 2.);
+		currents[e] /= 2.;
       }
+      /* Increment current (polar and azimuthal weighted flux, group) */
+	  _corner_currents->incrementValues(cell_id, _num_moc_groups,
+                                         cmfd_groups, currents);
     }
   }
 }
